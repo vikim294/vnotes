@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import "./App.css";
 import type { NodeData } from "./types";
 import { createCircle, createLine, flattenTree } from "./lib";
@@ -30,7 +30,7 @@ const tree: NodeData = {
   ],
 };
 
-// console.log(flattenTree(tree));
+const flatTree = flattenTree(tree);
 
 interface NoteNodeProps {
   id: number;
@@ -129,6 +129,13 @@ const NoteTree = ({ flatTree }: NoteTreeProps) => {
 
 function App() {
   const [paperSize, setPaperSize] = useState({ width: 0, height: 0 });
+  const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
+  const paperRef = useRef<SVGSVGElement>(null);
+  const panningInfo = useRef({
+    isPanning: false,
+    startX: 0,
+    startY: 0,
+  });
 
   useLayoutEffect(() => {
     const updatePaperSize = () => {
@@ -143,10 +150,62 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const paperEl = paperRef.current;
+    const onMousedown = (e: MouseEvent) => {
+      // only start panning with left mouse button
+      if (e.button !== 0) return;
+      if (e.target !== paperEl) return;
+
+      panningInfo.current.isPanning = true;
+      panningInfo.current.startX = e.clientX;
+      panningInfo.current.startY = e.clientY;
+    };
+
+    const onMousemove = (e: MouseEvent) => {
+      if (!panningInfo.current.isPanning) return;
+      const deltaX = e.clientX - panningInfo.current.startX;
+      const deltaY = e.clientY - panningInfo.current.startY;
+
+      panningInfo.current.startX = e.clientX;
+      panningInfo.current.startY = e.clientY;
+
+      setViewport((prev) => ({
+        x: prev.x + -deltaX,
+        y: prev.y + -deltaY,
+        zoom: prev.zoom,
+      }));
+    };
+
+    const onMouseup = () => {
+      if (panningInfo.current.isPanning) {
+        panningInfo.current.isPanning = false;
+      }
+    };
+
+    if (paperEl) {
+      paperEl.addEventListener("mousedown", onMousedown);
+      // attach move/up to window so releasing the mouse outside the svg stops panning
+      window.addEventListener("mousemove", onMousemove);
+      window.addEventListener("mouseup", onMouseup);
+    }
+
+    return () => {
+      paperEl?.removeEventListener("mousedown", onMousedown);
+      window.removeEventListener("mousemove", onMousemove);
+      window.removeEventListener("mouseup", onMouseup);
+    };
+  }, []);
+
   return (
     <div className="h-screen bg-black">
-      <svg width={paperSize.width} height={paperSize.height}>
-        <NoteTree flatTree={flattenTree(tree)} />
+      <svg
+        ref={paperRef}
+        width={paperSize.width}
+        height={paperSize.height}
+        viewBox={`${viewport.x} ${viewport.y} ${paperSize.width} ${paperSize.height}`}
+      >
+        <NoteTree flatTree={flatTree} />
 
         {createCircle(100, 100, 5)}
       </svg>

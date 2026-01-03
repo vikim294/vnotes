@@ -129,7 +129,13 @@ const NoteTree = ({ flatTree }: NoteTreeProps) => {
 
 function App() {
   const [paperSize, setPaperSize] = useState({ width: 0, height: 0 });
-  const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
+  const [viewport, setViewport] = useState({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+    zoom: 1,
+  });
   const paperRef = useRef<SVGSVGElement>(null);
   const panningInfo = useRef({
     isPanning: false,
@@ -142,14 +148,24 @@ function App() {
       setPaperSize({ width: window.innerWidth, height: window.innerHeight });
     };
 
+    const updateViewport = () => {
+      setViewport((prev) => ({
+        ...prev,
+        width: window.innerWidth,
+        height: window.innerHeight,
+      }));
+    };
+
     window.addEventListener("resize", updatePaperSize);
     updatePaperSize();
+    updateViewport();
 
     return () => {
       window.removeEventListener("resize", updatePaperSize);
     };
   }, []);
 
+  // panning
   useEffect(() => {
     const paperEl = paperRef.current;
 
@@ -173,9 +189,9 @@ function App() {
       panningInfo.current.startY = e.clientY;
 
       setViewport((prev) => ({
+        ...prev,
         x: prev.x + -deltaX,
         y: prev.y + -deltaY,
-        zoom: prev.zoom,
       }));
     };
 
@@ -206,9 +222,9 @@ function App() {
       panningInfo.current.startY = e.touches[0].clientY;
 
       setViewport((prev) => ({
+        ...prev,
         x: prev.x + -deltaX,
         y: prev.y + -deltaY,
-        zoom: prev.zoom,
       }));
     };
 
@@ -218,22 +234,21 @@ function App() {
       }
     };
 
-    if (paperEl) {
-      // pc
-      paperEl.addEventListener("mousedown", onMousedown);
-      // attach move/up to window so releasing the mouse outside the svg stops panning
-      window.addEventListener("mousemove", onMousemove);
-      window.addEventListener("mouseup", onMouseup);
+    // --- pc
+    // panning
+    paperEl?.addEventListener("mousedown", onMousedown);
+    // attach move/up to window so releasing the mouse outside the svg stops panning
+    window.addEventListener("mousemove", onMousemove);
+    window.addEventListener("mouseup", onMouseup);
 
-      // mobile
-      // https://javascript.info/default-browser-action#the-passive-handler-option
-      // The optional passive: true option of addEventListener signals the browser that the handler is not going to call preventDefault().
-      // For some browsers (Firefox, Chrome), passive is true by default for touchstart and touchmove events.
-      // passive: false 使得 e.preventDefault() 能够生效
-      paperEl.addEventListener("touchstart", onTouchstart, { passive: false });
-      window.addEventListener("touchmove", onTouchmove, { passive: false });
-      window.addEventListener("touchend", onTouchend);
-    }
+    // --- mobile
+    // https://javascript.info/default-browser-action#the-passive-handler-option
+    // The optional passive: true option of addEventListener signals the browser that the handler is not going to call preventDefault().
+    // For some browsers (Firefox, Chrome), passive is true by default for touchstart and touchmove events.
+    // passive: false 使得 e.preventDefault() 能够生效
+    paperEl?.addEventListener("touchstart", onTouchstart, { passive: false });
+    window.addEventListener("touchmove", onTouchmove, { passive: false });
+    window.addEventListener("touchend", onTouchend);
 
     return () => {
       // pc
@@ -248,18 +263,56 @@ function App() {
     };
   }, []);
 
+  // zooming
+  useEffect(() => {
+    const paperEl = paperRef.current;
+
+    const onWheel = (e: WheelEvent) => {
+      // console.log(e);
+
+      let newZoom = viewport.zoom;
+
+      if (e.deltaY < 0) {
+        // up -> zoom in
+        newZoom /= 1.1;
+      } else if (e.deltaY > 0) {
+        // down -> zoom out
+        newZoom *= 1.1;
+      }
+
+      // console.log(newZoom)
+
+      setViewport((prev) => ({
+        ...prev,
+        width: paperSize.width * newZoom,
+        height: paperSize.height * newZoom,
+        zoom: newZoom,
+      }));
+    };
+
+    paperEl?.addEventListener("wheel", onWheel);
+
+    return () => {
+      // zooming
+      paperEl?.removeEventListener("wheel", onWheel);
+    };
+  }, [viewport.zoom, paperSize]);
+
   return (
     <div className="h-screen bg-black">
       <svg
         ref={paperRef}
         width={paperSize.width}
         height={paperSize.height}
-        viewBox={`${viewport.x} ${viewport.y} ${paperSize.width} ${paperSize.height}`}
+        viewBox={`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`}
       >
         <NoteTree flatTree={flatTree} />
 
         {createCircle(100, 100, 5)}
       </svg>
+      <div className="fixed right-0 top-0 text-white">
+        zoom: {viewport.zoom.toFixed(1)}
+      </div>
     </div>
   );
 }

@@ -75,6 +75,7 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
         fill="white"
         textAnchor="middle"
         dominantBaseline="middle"
+        style={{ userSelect: "none" }}
       >
         {label}
       </text>

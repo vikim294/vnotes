@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import "./App.css";
 import type { NodeData } from "./types";
 import { createCircle, createLine, flattenTree } from "./lib";
+import Button from "./components/Button";
 
 const tree: NodeData = {
   id: 1,
@@ -102,7 +103,7 @@ const NoteTree = ({ flatTree }: NoteTreeProps) => {
           parent.x,
           parent.y,
           node.x,
-          node.y
+          node.y,
         );
       }
     }
@@ -144,6 +145,14 @@ function App() {
     startY: 0,
   });
 
+  // edit mode
+  const [editMode, setEditMode] = useState(false);
+
+  const handleSaveEdit = () => {
+    //
+    setEditMode(false);
+  };
+
   const resetZoom = () => {
     setViewport((prev) => ({
       ...prev,
@@ -176,6 +185,7 @@ function App() {
   }, []);
 
   // panning
+  // TODO: 使用 pointer event 可以涵盖 mouse 和 touch event
   useEffect(() => {
     const paperEl = paperRef.current;
 
@@ -274,6 +284,8 @@ function App() {
   }, []);
 
   // zooming
+  // TODO: 完善 zooming
+  // TODO: mobile zooming
   useEffect(() => {
     const paperEl = paperRef.current;
 
@@ -320,10 +332,31 @@ function App() {
 
         {createCircle(100, 100, 5)}
       </svg>
-      <div className="fixed right-0 top-0 text-white">
+      <div className="fixed top-0 right-0 text-white">
         <button onClick={resetZoom} className="cursor-pointer">
           reset zoom
         </button>
+      </div>
+
+      <div className="fixed top-25 right-0">
+        {!editMode && (
+          <Button type="primary" onClick={() => setEditMode(true)}>
+            edit mode
+          </Button>
+        )}
+
+        {editMode && (
+          <>
+            <div>
+              <Button type="primary" onClick={handleSaveEdit}>
+                save
+              </Button>
+            </div>
+            <div>
+              <Button onClick={() => setEditMode(false)}>exit</Button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

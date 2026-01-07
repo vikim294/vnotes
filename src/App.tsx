@@ -5,25 +5,25 @@ import { createCircle, createLine, flattenTree } from "./lib";
 
 const tree: NodeData = {
   id: 1,
-  label: "今天",
+  label: "today",
   x: 100,
   y: 100,
   children: [
     {
       id: 2,
-      label: "学习",
+      label: "study",
       x: 300,
       y: 40,
     },
     {
       id: 3,
-      label: "游戏",
+      label: "game",
       x: 300,
       y: 100,
     },
     {
       id: 4,
-      label: "打电话",
+      label: "code",
       x: 300,
       y: 200,
     },
@@ -143,6 +143,15 @@ function App() {
     startX: 0,
     startY: 0,
   });
+
+  const resetZoom = () => {
+    setViewport((prev) => ({
+      ...prev,
+      width: paperSize.width,
+      height: paperSize.height,
+      zoom: 1,
+    }));
+  };
 
   useLayoutEffect(() => {
     const updatePaperSize = () => {
@@ -312,7 +321,9 @@ function App() {
         {createCircle(100, 100, 5)}
       </svg>
       <div className="fixed right-0 top-0 text-white">
-        zoom: {viewport.zoom.toFixed(1)}
+        <button onClick={resetZoom} className="cursor-pointer">
+          reset zoom
+        </button>
       </div>
     </div>
   );

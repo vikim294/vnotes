@@ -271,23 +271,23 @@ function App() {
   }, []);
 
   // panning
-  // TODO: 使用 pointer event 可以涵盖 mouse 和 touch event
   useEffect(() => {
     const paperEl = paperRef.current;
 
-    // pc
-    const onMousedown = (e: MouseEvent) => {
-      // only start panning with left mouse button
-      if (e.button !== 0) return;
+    const onPointerDown = (e: PointerEvent) => {
       if (e.target !== paperEl) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      e.preventDefault();
 
       panningInfo.current.isPanning = true;
       panningInfo.current.startX = e.clientX;
       panningInfo.current.startY = e.clientY;
     };
 
-    const onMousemove = (e: MouseEvent) => {
+    const onPointerMove = (e: PointerEvent) => {
       if (!panningInfo.current.isPanning) return;
+      e.preventDefault();
+
       const deltaX = e.clientX - panningInfo.current.startX;
       const deltaY = e.clientY - panningInfo.current.startY;
 
@@ -301,76 +301,42 @@ function App() {
       }));
     };
 
-    const onMouseup = () => {
+    const onPointerUp = () => {
       if (panningInfo.current.isPanning) {
         panningInfo.current.isPanning = false;
       }
     };
 
-    // mobile
-    const onTouchstart = (e: TouchEvent) => {
-      if (e.target !== paperEl) return;
-      // 避免拖动时不会出现页面回弹或抖动
+    const touchHandler = (e: TouchEvent) => {
       e.preventDefault();
-      panningInfo.current.isPanning = true;
-      panningInfo.current.startX = e.touches[0].clientX;
-      panningInfo.current.startY = e.touches[0].clientY;
     };
 
-    const onTouchmove = (e: TouchEvent) => {
-      if (!panningInfo.current.isPanning) return;
-      // 避免拖动时不会出现页面回弹或抖动
-      e.preventDefault();
-      const deltaX = e.touches[0].clientX - panningInfo.current.startX;
-      const deltaY = e.touches[0].clientY - panningInfo.current.startY;
-
-      panningInfo.current.startX = e.touches[0].clientX;
-      panningInfo.current.startY = e.touches[0].clientY;
-
-      setViewport((prev) => ({
-        ...prev,
-        x: prev.x + -deltaX,
-        y: prev.y + -deltaY,
-      }));
-    };
-
-    const onTouchend = () => {
-      if (panningInfo.current.isPanning) {
-        panningInfo.current.isPanning = false;
-      }
-    };
-
-    // --- pc
-    // panning
-    paperEl?.addEventListener("mousedown", onMousedown);
-    // attach move/up to window so releasing the mouse outside the svg stops panning
-    window.addEventListener("mousemove", onMousemove);
-    window.addEventListener("mouseup", onMouseup);
-
-    // --- mobile
     // https://javascript.info/default-browser-action#the-passive-handler-option
     // The optional passive: true option of addEventListener signals the browser that the handler is not going to call preventDefault().
     // For some browsers (Firefox, Chrome), passive is true by default for touchstart and touchmove events.
     // passive: false 使得 e.preventDefault() 能够生效
-    paperEl?.addEventListener("touchstart", onTouchstart, { passive: false });
-    window.addEventListener("touchmove", onTouchmove, { passive: false });
-    window.addEventListener("touchend", onTouchend);
+    paperEl?.addEventListener("touchstart", touchHandler, {
+      passive: false,
+    });
+    paperEl?.addEventListener("touchmove", touchHandler, {
+      passive: false,
+    });
+
+    paperEl?.addEventListener("pointerdown", onPointerDown);
+    paperEl?.addEventListener("pointermove", onPointerMove);
+    paperEl?.addEventListener("pointerup", onPointerUp);
 
     return () => {
-      // pc
-      paperEl?.removeEventListener("mousedown", onMousedown);
-      window.removeEventListener("mousemove", onMousemove);
-      window.removeEventListener("mouseup", onMouseup);
+      paperEl?.removeEventListener("touchstart", touchHandler);
+      paperEl?.removeEventListener("touchmove", touchHandler);
 
-      // mobile
-      paperEl?.removeEventListener("touchstart", onTouchstart);
-      window.removeEventListener("touchmove", onTouchmove);
-      window.removeEventListener("touchend", onTouchend);
+      paperEl?.removeEventListener("pointerdown", onPointerDown);
+      paperEl?.removeEventListener("pointermove", onPointerMove);
+      paperEl?.removeEventListener("pointerup", onPointerUp);
     };
   }, []);
 
   // zooming
-  // TODO: mobile zooming
   useEffect(() => {
     const paperEl = paperRef.current;
 

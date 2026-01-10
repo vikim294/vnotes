@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  createContext,
+  use,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import "./App.css";
 import type { NodeData } from "./types";
 import { createCircle, createLine, flattenTree } from "./lib";
@@ -31,8 +38,6 @@ const tree: NodeData = {
   ],
 };
 
-const flatTree = flattenTree(tree);
-
 interface NoteNodeProps {
   id: number;
   x: number;
@@ -48,6 +53,14 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
     height: 0,
   });
 
+  const paperContext = use(PaperContext);
+  const gRef = useRef<SVGGElement | null>(null);
+  const positionRef = useRef({
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+  });
+
   useLayoutEffect(() => {
     if (textRef.current) {
       const bbox = textRef.current.getBBox();
@@ -59,8 +72,70 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
     }
   }, [label]);
 
+  useEffect(() => {
+    const gElem = gRef.current;
+    const positionData = positionRef.current
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (!paperContext?.editMode) return;
+      // console.log("pd");
+      positionData.isDragging = true;
+      positionData.startX = e.clientX;
+      positionData.startY = e.clientY;
+
+      // ⭐ after pointer down, "bind" the current pointer event to the g element.
+      gElem?.setPointerCapture(e.pointerId);
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!positionData.isDragging) return;
+      // console.log("pm");
+
+      const deltaX = e.clientX - positionData.startX;
+      const deltaY = e.clientY - positionData.startY;
+
+      // update state
+      paperContext?.setFlatTree((prev) => {
+        return prev.map((item) => {
+          if (item.id === id) {
+            return {
+              ...item,
+              x: item.x + deltaX,
+              y: item.y + deltaY,
+            };
+          } else {
+            return item;
+          }
+        });
+      });
+
+      // update positionRef
+      positionData.startX = e.clientX;
+      positionData.startY = e.clientY;
+    };
+
+    const onPointerUp = () => {
+      positionData.isDragging = false;
+    };
+
+    gElem?.addEventListener("pointerdown", onPointerDown);
+    gElem?.addEventListener("pointermove", onPointerMove);
+    gElem?.addEventListener("pointerup", onPointerUp);
+
+    return () => {
+      gElem?.removeEventListener("pointerdown", onPointerDown);
+      gElem?.removeEventListener("pointermove", onPointerMove);
+      gElem?.removeEventListener("pointerup", onPointerUp);
+    };
+  }, [id, paperContext]);
+
   return (
-    <g key={id} transform={`translate(${x}, ${y})`}>
+    <g
+      key={id}
+      className={paperContext?.editMode ? "cursor-pointer" : ""}
+      transform={`translate(${x}, ${y})`}
+      ref={gRef}
+    >
       <rect
         x={rectSize.width / -2}
         y={rectSize.height / -2}
@@ -129,7 +204,13 @@ const NoteTree = ({ flatTree }: NoteTreeProps) => {
   );
 };
 
+const PaperContext = createContext<{
+  editMode: boolean;
+  setFlatTree: React.Dispatch<React.SetStateAction<NodeData[]>>;
+} | null>(null);
+
 function App() {
+  const [flatTree, setFlatTree] = useState(flattenTree(tree));
   const [paperSize, setPaperSize] = useState({ width: 0, height: 0 });
   const [viewport, setViewport] = useState({
     x: 0,
@@ -147,6 +228,11 @@ function App() {
 
   // edit mode
   const [editMode, setEditMode] = useState(false);
+
+  const paperContext = {
+    editMode,
+    setFlatTree,
+  };
 
   const handleSaveEdit = () => {
     //
@@ -321,44 +407,46 @@ function App() {
   }, [viewport.zoom, paperSize]);
 
   return (
-    <div className="h-screen bg-black">
-      <svg
-        ref={paperRef}
-        width={paperSize.width}
-        height={paperSize.height}
-        viewBox={`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`}
-      >
-        <NoteTree flatTree={flatTree} />
+    <PaperContext value={paperContext}>
+      <div className="h-screen bg-black">
+        <svg
+          ref={paperRef}
+          width={paperSize.width}
+          height={paperSize.height}
+          viewBox={`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`}
+        >
+          <NoteTree flatTree={flatTree} />
 
-        {createCircle(100, 100, 5)}
-      </svg>
-      <div className="fixed top-0 right-0 text-white">
-        <button onClick={resetZoom} className="cursor-pointer">
-          reset zoom
-        </button>
+          {createCircle(100, 100, 5)}
+        </svg>
+        <div className="fixed top-0 right-0 text-white">
+          <button onClick={resetZoom} className="cursor-pointer">
+            reset zoom
+          </button>
+        </div>
+
+        <div className="fixed top-25 right-0">
+          {!editMode && (
+            <Button type="primary" onClick={() => setEditMode(true)}>
+              edit mode
+            </Button>
+          )}
+
+          {editMode && (
+            <>
+              <div>
+                <Button type="primary" onClick={handleSaveEdit}>
+                  save
+                </Button>
+              </div>
+              <div>
+                <Button onClick={() => setEditMode(false)}>exit</Button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
-
-      <div className="fixed top-25 right-0">
-        {!editMode && (
-          <Button type="primary" onClick={() => setEditMode(true)}>
-            edit mode
-          </Button>
-        )}
-
-        {editMode && (
-          <>
-            <div>
-              <Button type="primary" onClick={handleSaveEdit}>
-                save
-              </Button>
-            </div>
-            <div>
-              <Button onClick={() => setEditMode(false)}>exit</Button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+    </PaperContext>
   );
 }
 

@@ -74,7 +74,7 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
 
   useEffect(() => {
     const gElem = gRef.current;
-    const positionData = positionRef.current
+    const positionData = positionRef.current;
 
     const onPointerDown = (e: PointerEvent) => {
       if (!paperContext?.editMode) return;
@@ -370,7 +370,6 @@ function App() {
   }, []);
 
   // zooming
-  // TODO: 完善 zooming
   // TODO: mobile zooming
   useEffect(() => {
     const paperEl = paperRef.current;
@@ -378,6 +377,7 @@ function App() {
     const onWheel = (e: WheelEvent) => {
       // console.log(e);
 
+      const zoom = viewport.zoom;
       let newZoom = viewport.zoom;
 
       if (e.deltaY < 0) {
@@ -390,8 +390,15 @@ function App() {
 
       // console.log(newZoom)
 
+      // the position ratio of pointer in the paper
+      const ratioX = e.clientX / paperSize.width;
+      const ratioY = e.clientY / paperSize.height;
+      const deltaX = paperSize.width * -(newZoom - zoom) * ratioX;
+      const deltaY = paperSize.height * -(newZoom - zoom) * ratioY;
+
       setViewport((prev) => ({
-        ...prev,
+        x: prev.x + deltaX,
+        y: prev.y + deltaY,
         width: paperSize.width * newZoom,
         height: paperSize.height * newZoom,
         zoom: newZoom,
@@ -401,7 +408,6 @@ function App() {
     paperEl?.addEventListener("wheel", onWheel);
 
     return () => {
-      // zooming
       paperEl?.removeEventListener("wheel", onWheel);
     };
   }, [viewport.zoom, paperSize]);
@@ -413,6 +419,8 @@ function App() {
           ref={paperRef}
           width={paperSize.width}
           height={paperSize.height}
+          // ⭐ viewBox 会先应用 x 和 y，然后才应用 width 和 height
+          // viewBox 的效果：以 (x, y) 为左上角，显示 width × height 区域，并投影到 svg 画布上
           viewBox={`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`}
         >
           <NoteTree flatTree={flatTree} />
@@ -420,9 +428,11 @@ function App() {
           {createCircle(100, 100, 5)}
         </svg>
         <div className="fixed top-0 right-0 text-white">
-          <button onClick={resetZoom} className="cursor-pointer">
-            reset zoom
-          </button>
+          {viewport.zoom !== 1 && (
+            <button onClick={resetZoom} className="cursor-pointer">
+              reset zoom
+            </button>
+          )}
         </div>
 
         <div className="fixed top-25 right-0">

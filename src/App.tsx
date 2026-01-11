@@ -8,7 +8,12 @@ import {
 } from "react";
 import "./App.css";
 import type { NodeData } from "./types";
-import { createCircle, createLine, flattenTree } from "./lib";
+import {
+  createCircle,
+  createLine,
+  flattenTree,
+  getDistanceBetweenTwoPoints,
+} from "./lib";
 import Button from "./components/Button";
 
 const tree: NodeData = {
@@ -209,6 +214,20 @@ const PaperContext = createContext<{
   setFlatTree: React.Dispatch<React.SetStateAction<NodeData[]>>;
 } | null>(null);
 
+interface GestureInfo {
+  type: "none" | "panning" | "pinchAndZoom";
+  startX1: number;
+  startY1: number;
+  startX2: number;
+  startY2: number;
+  startD: number;
+  centerPointX: number;
+  centerPointY: number;
+  viewportStartX: number;
+  viewportStartY: number;
+  viewportStartZoom: number;
+}
+
 function App() {
   const [flatTree, setFlatTree] = useState(flattenTree(tree));
   const [paperSize, setPaperSize] = useState({ width: 0, height: 0 });
@@ -220,10 +239,18 @@ function App() {
     zoom: 1,
   });
   const paperRef = useRef<SVGSVGElement>(null);
-  const panningInfo = useRef({
-    isPanning: false,
-    startX: 0,
-    startY: 0,
+  const gestureInfo = useRef<GestureInfo>({
+    type: "none",
+    startX1: 0,
+    startY1: 0,
+    startX2: 0,
+    startY2: 0,
+    startD: 0,
+    centerPointX: 0,
+    centerPointY: 0,
+    viewportStartX: 0,
+    viewportStartY: 0,
+    viewportStartZoom: 1,
   });
 
   // edit mode
@@ -273,38 +300,100 @@ function App() {
   // panning
   useEffect(() => {
     const paperEl = paperRef.current;
+    const gestureData = gestureInfo.current;
 
     const onPointerDown = (e: PointerEvent) => {
+      // return if it's not paper
       if (e.target !== paperEl) return;
+      // return if it's not the left click when clicking
       if (e.pointerType === "mouse" && e.button !== 0) return;
-      e.preventDefault();
 
-      panningInfo.current.isPanning = true;
-      panningInfo.current.startX = e.clientX;
-      panningInfo.current.startY = e.clientY;
+      paperEl?.setPointerCapture(e.pointerId);
+
+      if (e.isPrimary) {
+        gestureData.type = "panning";
+        gestureData.startX1 = e.clientX;
+        gestureData.startY1 = e.clientY;
+      } else {
+        gestureData.type = "pinchAndZoom";
+        gestureData.startX2 = e.clientX;
+        gestureData.startY2 = e.clientY;
+
+        const p1 = { x: gestureData.startX1, y: gestureData.startY1 };
+        const p2 = { x: gestureData.startX2, y: gestureData.startY2 };
+
+        gestureData.startD = getDistanceBetweenTwoPoints(p1, p2);
+        gestureData.centerPointX = (p1.x + p2.x) / 2;
+        gestureData.centerPointY = (p1.y + p2.y) / 2;
+        gestureData.viewportStartX = viewport.x;
+        gestureData.viewportStartY = viewport.y;
+        gestureData.viewportStartZoom = viewport.zoom;
+      }
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      if (!panningInfo.current.isPanning) return;
-      e.preventDefault();
+      if (gestureData.type === "panning") {
+        const deltaX = e.clientX - gestureData.startX1;
+        const deltaY = e.clientY - gestureData.startY1;
 
-      const deltaX = e.clientX - panningInfo.current.startX;
-      const deltaY = e.clientY - panningInfo.current.startY;
+        gestureData.startX1 = e.clientX;
+        gestureData.startY1 = e.clientY;
 
-      panningInfo.current.startX = e.clientX;
-      panningInfo.current.startY = e.clientY;
+        setViewport((prev) => ({
+          ...prev,
+          x: prev.x + -deltaX,
+          y: prev.y + -deltaY,
+        }));
+      } else if (gestureData.type === "pinchAndZoom") {
+        let newD = 0;
+        let p1 = { x: e.clientX, y: e.clientY };
+        let p2 = { x: e.clientX, y: e.clientY };
 
-      setViewport((prev) => ({
-        ...prev,
-        x: prev.x + -deltaX,
-        y: prev.y + -deltaY,
-      }));
+        if (e.isPrimary) {
+          p2 = { x: gestureData.startX2, y: gestureData.startY2 };
+          // 更新 gestureData
+          gestureData.startX1 = e.clientX;
+          gestureData.startY1 = e.clientY;
+        } else {
+          p1 = { x: gestureData.startX1, y: gestureData.startY1 };
+          // 更新 gestureData
+          gestureData.startX2 = e.clientX;
+          gestureData.startY2 = e.clientY;
+        }
+
+        newD = getDistanceBetweenTwoPoints(p1, p2);
+
+        let newZoom = 0;
+
+        // startD: newD = startZoom: newZoom
+        const ratio = newD / gestureData.startD;
+        if (ratio !== 1) {
+          // zoom in or zoom out
+          newZoom = (1 / ratio) * gestureData.viewportStartZoom;
+        }
+
+        // the position ratio of pointer in the paper
+        const ratioX = gestureData.centerPointX / paperSize.width;
+        const ratioY = gestureData.centerPointY / paperSize.height;
+        const deltaX =
+          paperSize.width * -(newZoom - gestureData.viewportStartZoom) * ratioX;
+        const deltaY =
+          paperSize.height *
+          -(newZoom - gestureData.viewportStartZoom) *
+          ratioY;
+
+        setViewport({
+          x: gestureData.viewportStartX + deltaX,
+          y: gestureData.viewportStartY + deltaY,
+          width: paperSize.width * newZoom,
+          height: paperSize.height * newZoom,
+          zoom: newZoom,
+        });
+      }
     };
 
     const onPointerUp = () => {
-      if (panningInfo.current.isPanning) {
-        panningInfo.current.isPanning = false;
-      }
+      gestureData.type = "none";
     };
 
     const touchHandler = (e: TouchEvent) => {
@@ -334,7 +423,7 @@ function App() {
       paperEl?.removeEventListener("pointermove", onPointerMove);
       paperEl?.removeEventListener("pointerup", onPointerUp);
     };
-  }, []);
+  }, [paperSize, viewport.x, viewport.y, viewport.zoom]);
 
   // zooming
   useEffect(() => {
@@ -396,7 +485,7 @@ function App() {
         <div className="fixed top-0 right-0 text-white">
           {viewport.zoom !== 1 && (
             <button onClick={resetZoom} className="cursor-pointer">
-              reset zoom
+              reset zoom({viewport.zoom})
             </button>
           )}
         </div>

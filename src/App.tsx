@@ -297,15 +297,15 @@ function App() {
     };
   }, []);
 
-  // panning
+  // panning and pinch & zoom
   useEffect(() => {
     const paperEl = paperRef.current;
     const gestureData = gestureInfo.current;
 
     const onPointerDown = (e: PointerEvent) => {
-      // return if it's not paper
-      if (e.target !== paperEl) return;
-      // return if it's not the left click when clicking
+      // return if it's not paper in edit mode
+      if (editMode && e.target !== paperEl) return;
+      // return if it's not left click when clicking
       if (e.pointerType === "mouse" && e.button !== 0) return;
 
       paperEl?.setPointerCapture(e.pointerId);
@@ -423,7 +423,7 @@ function App() {
       paperEl?.removeEventListener("pointermove", onPointerMove);
       paperEl?.removeEventListener("pointerup", onPointerUp);
     };
-  }, [paperSize, viewport.x, viewport.y, viewport.zoom]);
+  }, [paperSize, viewport.x, viewport.y, viewport.zoom, editMode]);
 
   // zooming
   useEffect(() => {
@@ -485,7 +485,7 @@ function App() {
         <div className="fixed top-0 right-0 text-white">
           {viewport.zoom !== 1 && (
             <button onClick={resetZoom} className="cursor-pointer">
-              reset zoom({viewport.zoom})
+              reset zoom
             </button>
           )}
         </div>

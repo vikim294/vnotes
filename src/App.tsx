@@ -242,6 +242,7 @@ function App() {
     height: 0,
     zoom: 1,
   });
+  const viewportRef = useRef(viewport);
   const paperRef = useRef<SVGSVGElement>(null);
   const gestureInfo = useRef<GestureInfo>({
     type: "none",
@@ -264,6 +265,10 @@ function App() {
     () => ({ editMode, setFlatTree }),
     [editMode, setFlatTree], // setFlatTree 实际上是稳定的，放着也无妨
   );
+
+  useLayoutEffect(() => {
+    viewportRef.current = viewport;
+  }, [viewport]);
 
   const handleSaveEdit = () => {
     //
@@ -323,15 +328,16 @@ function App() {
         gestureData.startX2 = e.clientX;
         gestureData.startY2 = e.clientY;
 
+        const v = viewportRef.current;
         const p1 = { x: gestureData.startX1, y: gestureData.startY1 };
         const p2 = { x: gestureData.startX2, y: gestureData.startY2 };
 
         gestureData.startD = getDistanceBetweenTwoPoints(p1, p2);
         gestureData.centerPointX = (p1.x + p2.x) / 2;
         gestureData.centerPointY = (p1.y + p2.y) / 2;
-        gestureData.viewportStartX = viewport.x;
-        gestureData.viewportStartY = viewport.y;
-        gestureData.viewportStartZoom = viewport.zoom;
+        gestureData.viewportStartX = v.x;
+        gestureData.viewportStartY = v.y;
+        gestureData.viewportStartZoom = v.zoom;
       }
     };
 
@@ -427,7 +433,7 @@ function App() {
       paperEl?.removeEventListener("pointermove", onPointerMove);
       paperEl?.removeEventListener("pointerup", onPointerUp);
     };
-  }, [paperSize, viewport.x, viewport.y, viewport.zoom, editMode]);
+  }, [paperSize, editMode]);
 
   // zooming
   useEffect(() => {

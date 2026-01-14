@@ -3,6 +3,7 @@ import {
   use,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -59,6 +60,9 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
   });
 
   const paperContext = use(PaperContext);
+  const editMode = paperContext?.editMode;
+  const setFlatTree = paperContext?.setFlatTree;
+
   const gRef = useRef<SVGGElement | null>(null);
   const positionRef = useRef({
     isDragging: false,
@@ -82,7 +86,7 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
     const positionData = positionRef.current;
 
     const onPointerDown = (e: PointerEvent) => {
-      if (!paperContext?.editMode) return;
+      if (!editMode) return;
       // console.log("pd");
       positionData.isDragging = true;
       positionData.startX = e.clientX;
@@ -100,7 +104,7 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
       const deltaY = e.clientY - positionData.startY;
 
       // update state
-      paperContext?.setFlatTree((prev) => {
+      setFlatTree?.((prev) => {
         return prev.map((item) => {
           if (item.id === id) {
             return {
@@ -132,7 +136,7 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
       gElem?.removeEventListener("pointermove", onPointerMove);
       gElem?.removeEventListener("pointerup", onPointerUp);
     };
-  }, [id, paperContext]);
+  }, [id, editMode, setFlatTree]);
 
   return (
     <g
@@ -256,10 +260,10 @@ function App() {
   // edit mode
   const [editMode, setEditMode] = useState(false);
 
-  const paperContext = {
-    editMode,
-    setFlatTree,
-  };
+  const paperContext = useMemo(
+    () => ({ editMode, setFlatTree }),
+    [editMode, setFlatTree], // setFlatTree 实际上是稳定的，放着也无妨
+  );
 
   const handleSaveEdit = () => {
     //

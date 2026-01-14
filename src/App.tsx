@@ -436,32 +436,34 @@ function App() {
     const onWheel = (e: WheelEvent) => {
       // console.log(e);
 
-      const zoom = viewport.zoom;
-      let newZoom = viewport.zoom;
+      setViewport((prev) => {
+        const zoom = prev.zoom;
+        let newZoom = prev.zoom;
 
-      if (e.deltaY < 0) {
-        // up -> zoom in
-        newZoom /= 1.1;
-      } else if (e.deltaY > 0) {
-        // down -> zoom out
-        newZoom *= 1.1;
-      }
+        if (e.deltaY < 0) {
+          // up -> zoom in
+          newZoom /= 1.1;
+        } else if (e.deltaY > 0) {
+          // down -> zoom out
+          newZoom *= 1.1;
+        }
 
-      // console.log(newZoom)
+        // console.log(newZoom)
 
-      // the position ratio of pointer in the paper
-      const ratioX = e.clientX / paperSize.width;
-      const ratioY = e.clientY / paperSize.height;
-      const deltaX = paperSize.width * -(newZoom - zoom) * ratioX;
-      const deltaY = paperSize.height * -(newZoom - zoom) * ratioY;
+        // the position ratio of pointer in the paper
+        const ratioX = e.clientX / paperSize.width;
+        const ratioY = e.clientY / paperSize.height;
+        const deltaX = paperSize.width * -(newZoom - zoom) * ratioX;
+        const deltaY = paperSize.height * -(newZoom - zoom) * ratioY;
 
-      setViewport((prev) => ({
-        x: prev.x + deltaX,
-        y: prev.y + deltaY,
-        width: paperSize.width * newZoom,
-        height: paperSize.height * newZoom,
-        zoom: newZoom,
-      }));
+        return {
+          x: prev.x + deltaX,
+          y: prev.y + deltaY,
+          width: paperSize.width * newZoom,
+          height: paperSize.height * newZoom,
+          zoom: newZoom,
+        };
+      });
     };
 
     paperEl?.addEventListener("wheel", onWheel);
@@ -469,7 +471,7 @@ function App() {
     return () => {
       paperEl?.removeEventListener("wheel", onWheel);
     };
-  }, [viewport.zoom, paperSize]);
+  }, [paperSize]);
 
   return (
     <PaperContext value={paperContext}>

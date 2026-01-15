@@ -22,26 +22,26 @@ const tree: NodeData = {
   label: "today",
   x: 100,
   y: 100,
-  children: [
-    {
-      id: 2,
-      label: "study",
-      x: 300,
-      y: 40,
-    },
-    {
-      id: 3,
-      label: "game",
-      x: 300,
-      y: 100,
-    },
-    {
-      id: 4,
-      label: "code",
-      x: 300,
-      y: 200,
-    },
-  ],
+  // children: [
+  //   {
+  //     id: 2,
+  //     label: "study",
+  //     x: 300,
+  //     y: 40,
+  //   },
+  //   {
+  //     id: 3,
+  //     label: "game",
+  //     x: 300,
+  //     y: 100,
+  //   },
+  //   {
+  //     id: 4,
+  //     label: "code",
+  //     x: 300,
+  //     y: 200,
+  //   },
+  // ],
 };
 
 interface NoteNodeProps {
@@ -50,6 +50,19 @@ interface NoteNodeProps {
   y: number;
   label: string;
 }
+
+const createNodeMenuEvent = (detail: {
+  nodeId: number;
+  clientX: number;
+  clientY: number;
+  source: "longtap" | "contextmenu";
+}) => {
+  return new CustomEvent("nodemenu", {
+    bubbles: true,
+    cancelable: true,
+    detail,
+  });
+};
 
 function NoteNode({ id, x, y, label }: NoteNodeProps) {
   const padding = 8;
@@ -70,6 +83,81 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
     startY: 0,
   });
 
+  const tapInfoRef = useRef<{
+    timer: number | null;
+    startX: number;
+    startY: number;
+  }>({
+    timer: null,
+    startX: 0,
+    startY: 0,
+  });
+
+  const showOpenMenu = (e: React.MouseEvent<SVGGElement, MouseEvent>) => {
+    e.preventDefault();
+    gRef.current?.dispatchEvent(
+      createNodeMenuEvent({
+        nodeId: id,
+        clientX: e.clientX,
+        clientY: e.clientY,
+        source: "contextmenu",
+      }),
+    );
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<SVGGElement>) => {
+    if (!editMode) return;
+    if (e.pointerType === "mouse") return;
+    if (!e.isPrimary) return;
+
+    // tap 后开启定时器
+    if (tapInfoRef.current.timer) {
+      clearTimeout(tapInfoRef.current.timer);
+    }
+
+    tapInfoRef.current.startX = e.clientX;
+    tapInfoRef.current.startY = e.clientY;
+    tapInfoRef.current.timer = setTimeout(() => {
+      tapInfoRef.current.timer = null;
+
+      gRef.current?.dispatchEvent(
+        createNodeMenuEvent({
+          nodeId: id,
+          clientX: e.clientX,
+          clientY: e.clientY,
+          source: "longtap",
+        }),
+      );
+    }, 500);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<SVGGElement>) => {
+    // TODO: 验证交互
+    // tap 后移动超过10px，则认为是拖拽，而不是 menu
+    if (tapInfoRef.current.timer) {
+      const deltaX = e.clientX - tapInfoRef.current.startX;
+      const deltaY = e.clientY - tapInfoRef.current.startY;
+      if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+        clearTimeout(tapInfoRef.current.timer);
+        tapInfoRef.current.timer = null;
+      }
+    }
+  };
+
+  const handlePointerUp = () => {
+    if (tapInfoRef.current.timer) {
+      clearTimeout(tapInfoRef.current.timer);
+      tapInfoRef.current.timer = null;
+    }
+  };
+
+  const handlePointerCancel = () => {
+    if (tapInfoRef.current.timer) {
+      clearTimeout(tapInfoRef.current.timer);
+      tapInfoRef.current.timer = null;
+    }
+  };
+
   useLayoutEffect(() => {
     if (textRef.current) {
       const bbox = textRef.current.getBBox();
@@ -81,6 +169,7 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
     }
   }, [label]);
 
+  // drag node
   useEffect(() => {
     const gElem = gRef.current;
     const positionData = positionRef.current;
@@ -138,12 +227,47 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
     };
   }, [id, editMode, setFlatTree]);
 
+  // menu event
+  useEffect(() => {
+    const gElem = gRef.current;
+    const onNodeMenu = (
+      e: CustomEvent<{
+        nodeId: number;
+        clientX: number;
+        clientY: number;
+        source: "longtap" | "contextmenu";
+      }>,
+    ) => {
+      console.log("node menu", e);
+    };
+
+    gElem?.addEventListener("nodemenu", onNodeMenu as EventListener);
+
+    return () => {
+      gElem?.removeEventListener("nodemenu", onNodeMenu as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (tapInfoRef.current.timer) {
+        clearTimeout(tapInfoRef.current.timer);
+        tapInfoRef.current.timer = null;
+      }
+    };
+  }, []);
+
   return (
     <g
       key={id}
       className={paperContext?.editMode ? "cursor-pointer" : ""}
       transform={`translate(${x}, ${y})`}
       ref={gRef}
+      onContextMenu={showOpenMenu}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
     >
       <rect
         x={rectSize.width / -2}
@@ -492,7 +616,7 @@ function App() {
         >
           <NoteTree flatTree={flatTree} />
 
-          {createCircle(100, 100, 5)}
+          {/* {createCircle(100, 100, 5)} */}
         </svg>
         <div className="fixed top-0 right-0 text-white">
           {viewport.zoom !== 1 && (

@@ -16,32 +16,33 @@ import {
   getDistanceBetweenTwoPoints,
 } from "./lib";
 import Button from "./components/Button";
+import NodeMenu, { type NodeMenuExpose } from "./components/NodeMenu";
 
 const tree: NodeData = {
   id: 1,
   label: "today",
   x: 100,
   y: 100,
-  // children: [
-  //   {
-  //     id: 2,
-  //     label: "study",
-  //     x: 300,
-  //     y: 40,
-  //   },
-  //   {
-  //     id: 3,
-  //     label: "game",
-  //     x: 300,
-  //     y: 100,
-  //   },
-  //   {
-  //     id: 4,
-  //     label: "code",
-  //     x: 300,
-  //     y: 200,
-  //   },
-  // ],
+  children: [
+    {
+      id: 2,
+      label: "study",
+      x: 300,
+      y: 40,
+    },
+    {
+      id: 3,
+      label: "game",
+      x: 300,
+      y: 100,
+    },
+    {
+      id: 4,
+      label: "code",
+      x: 300,
+      y: 200,
+    },
+  ],
 };
 
 interface NoteNodeProps {
@@ -53,8 +54,6 @@ interface NoteNodeProps {
 
 const createNodeMenuEvent = (detail: {
   nodeId: number;
-  clientX: number;
-  clientY: number;
   source: "longtap" | "contextmenu";
 }) => {
   return new CustomEvent("nodemenu", {
@@ -74,7 +73,10 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
 
   const paperContext = use(PaperContext);
   const editMode = paperContext?.editMode;
+  const selectedNodeIdRef = paperContext?.selectedNodeIdRef;
+  const nodeMenuRef = paperContext?.nodeMenuRef;
   const setFlatTree = paperContext?.setFlatTree;
+  const setNodeMenuVisible = paperContext?.setNodeMenuVisible;
 
   const gRef = useRef<SVGGElement | null>(null);
   const positionRef = useRef({
@@ -95,11 +97,11 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
 
   const showOpenMenu = (e: React.MouseEvent<SVGGElement, MouseEvent>) => {
     e.preventDefault();
+    if (!editMode) return;
+
     gRef.current?.dispatchEvent(
       createNodeMenuEvent({
         nodeId: id,
-        clientX: e.clientX,
-        clientY: e.clientY,
         source: "contextmenu",
       }),
     );
@@ -123,8 +125,6 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
       gRef.current?.dispatchEvent(
         createNodeMenuEvent({
           nodeId: id,
-          clientX: e.clientX,
-          clientY: e.clientY,
           source: "longtap",
         }),
       );
@@ -230,15 +230,25 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
   // menu event
   useEffect(() => {
     const gElem = gRef.current;
+    
     const onNodeMenu = (
       e: CustomEvent<{
         nodeId: number;
-        clientX: number;
-        clientY: number;
         source: "longtap" | "contextmenu";
       }>,
     ) => {
-      console.log("node menu", e);
+      // console.log("node menu", e);
+      const { left, top, width } = (
+        e.target as SVGGElement
+      ).getBoundingClientRect();
+
+      selectedNodeIdRef!.current = e.detail.nodeId;
+
+      nodeMenuRef?.current?.setPosition({
+        x: left + width + 12,
+        y: top,
+      });
+      setNodeMenuVisible?.(true);
     };
 
     gElem?.addEventListener("nodemenu", onNodeMenu as EventListener);
@@ -246,7 +256,7 @@ function NoteNode({ id, x, y, label }: NoteNodeProps) {
     return () => {
       gElem?.removeEventListener("nodemenu", onNodeMenu as EventListener);
     };
-  }, []);
+  }, [selectedNodeIdRef, nodeMenuRef, setNodeMenuVisible]);
 
   useEffect(() => {
     return () => {
@@ -339,7 +349,10 @@ const NoteTree = ({ flatTree }: NoteTreeProps) => {
 
 const PaperContext = createContext<{
   editMode: boolean;
+  selectedNodeIdRef: React.RefObject<number | null>;
+  nodeMenuRef: React.RefObject<NodeMenuExpose | null>;
   setFlatTree: React.Dispatch<React.SetStateAction<NodeData[]>>;
+  setNodeMenuVisible: React.Dispatch<React.SetStateAction<boolean>>;
 } | null>(null);
 
 interface GestureInfo {
@@ -384,15 +397,20 @@ function App() {
 
   // edit mode
   const [editMode, setEditMode] = useState(false);
+  const [nodeMenuVisible, setNodeMenuVisible] = useState(false);
+  const nodeMenuRef = useRef<NodeMenuExpose | null>(null);
+  const selectedNodeIdRef = useRef<number | null>(null);
 
   const paperContext = useMemo(
-    () => ({ editMode, setFlatTree }),
-    [editMode, setFlatTree], // setFlatTree 实际上是稳定的，放着也无妨
+    () => ({
+      editMode,
+      selectedNodeIdRef,
+      nodeMenuRef,
+      setFlatTree,
+      setNodeMenuVisible,
+    }),
+    [editMode],
   );
-
-  useLayoutEffect(() => {
-    viewportRef.current = viewport;
-  }, [viewport]);
 
   const handleSaveEdit = () => {
     //
@@ -407,6 +425,20 @@ function App() {
       zoom: 1,
     }));
   };
+
+  const handleNodeEdit = () => {
+    //
+  };
+  const handleNodeAddChild = () => {
+    //
+  };
+  const handleNodeDelete = () => {
+    //
+  };
+
+  useLayoutEffect(() => {
+    viewportRef.current = viewport;
+  }, [viewport]);
 
   useLayoutEffect(() => {
     const updatePaperSize = () => {
@@ -613,6 +645,7 @@ function App() {
           // ⭐ viewBox 会先应用 x 和 y，然后才应用 width 和 height
           // viewBox 的效果：以 (x, y) 为左上角，显示 width × height 区域，并投影到 svg 画布上
           viewBox={`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`}
+          onContextMenu={(e) => e.preventDefault()}
         >
           <NoteTree flatTree={flatTree} />
 
@@ -646,6 +679,15 @@ function App() {
             </>
           )}
         </div>
+
+        <NodeMenu
+          ref={nodeMenuRef}
+          visible={nodeMenuVisible}
+          onEdit={handleNodeEdit}
+          onAddChild={handleNodeAddChild}
+          onDelete={handleNodeDelete}
+          onClose={() => setNodeMenuVisible(false)}
+        />
       </div>
     </PaperContext>
   );

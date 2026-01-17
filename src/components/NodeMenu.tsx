@@ -48,7 +48,7 @@ export default function NodeMenu({
       <div
         className={`bg-plain fixed`}
         style={{ top: position.y, left: position.x }}
-        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <div>
           <Button className="block w-full" onClick={onEdit}>

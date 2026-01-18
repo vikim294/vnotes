@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import {
-  createCircle,
   findDescendentsById,
   flattenTree,
   getDistanceBetweenTwoPoints,
@@ -68,12 +67,13 @@ function App() {
   const paperContext = useMemo(
     () => ({
       editMode,
+      viewportZoom: viewport.zoom,
       selectedNodeIdRef,
       nodeMenuRef,
       setFlatTree,
       setNodeMenuVisible,
     }),
-    [editMode],
+    [editMode, viewport.zoom],
   );
 
   const handleSaveEdit = () => {
@@ -340,8 +340,6 @@ function App() {
           onContextMenu={(e) => e.preventDefault()}
         >
           <NoteTree flatTree={flatTree} />
-
-          {/* {createCircle(100, 100, 5)} */}
         </svg>
         <div className="fixed top-0 right-0 text-white">
           {viewport.zoom !== 1 && (

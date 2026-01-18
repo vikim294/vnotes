@@ -29,6 +29,7 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
 
   const paperContext = use(PaperContext);
   const editMode = paperContext?.editMode;
+  const viewportZoom = paperContext?.viewportZoom;
   const selectedNodeIdRef = paperContext?.selectedNodeIdRef;
   const nodeMenuRef = paperContext?.nodeMenuRef;
   const setFlatTree = paperContext?.setFlatTree;
@@ -154,8 +155,8 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
           if (item.id === id) {
             return {
               ...item,
-              x: item.x + deltaX,
-              y: item.y + deltaY,
+              x: item.x + deltaX * (viewportZoom ?? 1),
+              y: item.y + deltaY * (viewportZoom ?? 1),
             };
           } else {
             return item;
@@ -181,7 +182,7 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
       gElem?.removeEventListener("pointermove", onPointerMove);
       gElem?.removeEventListener("pointerup", onPointerUp);
     };
-  }, [id, editMode, setFlatTree]);
+  }, [id, editMode, viewportZoom, setFlatTree]);
 
   // menu event
   useEffect(() => {

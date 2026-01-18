@@ -4,6 +4,7 @@ import type { NodeData } from "../types";
 
 const PaperContext = createContext<{
   editMode: boolean;
+  viewportZoom: number;
   selectedNodeIdRef: React.RefObject<number | null>;
   nodeMenuRef: React.RefObject<NodeMenuExpose | null>;
   setFlatTree: React.Dispatch<React.SetStateAction<NodeData[]>>;

@@ -5,7 +5,7 @@ import Button from "./components/Button";
 import NodeMenu, { type NodeMenuExpose } from "./components/NodeMenu";
 import { tree } from "./mock/nodeData";
 import NoteTree from "./components/NoteTree";
-import PaperContext from "./context/PaperContext";
+import PaperContext from "./context/paperContext";
 import useModal from "./components/useModal";
 
 interface GestureInfo {
@@ -141,7 +141,6 @@ function App() {
     };
   }, []);
 
-  // TODO: zoom 后，panning 的比例
   // panning and pinch & zoom
   useEffect(() => {
     const paperEl = paperRef.current;
@@ -187,8 +186,8 @@ function App() {
 
         setViewport((prev) => ({
           ...prev,
-          x: prev.x + -deltaX,
-          y: prev.y + -deltaY,
+          x: prev.x + -deltaX * prev.zoom,
+          y: prev.y + -deltaY * prev.zoom,
         }));
       } else if (gestureData.type === "pinchAndZoom") {
         let newD = 0;
@@ -334,7 +333,7 @@ function App() {
         <div className="fixed top-0 right-0 text-white">
           {viewport.zoom !== 1 && (
             <button onClick={resetZoom} className="cursor-pointer">
-              reset zoom
+              {viewport.zoom.toFixed(2)} reset zoom
             </button>
           )}
         </div>

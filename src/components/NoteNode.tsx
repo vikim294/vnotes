@@ -195,7 +195,7 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
       gElem?.removeEventListener("pointermove", onPointerMove);
       gElem?.removeEventListener("pointerup", onPointerUp);
     };
-  }, [id, editMode, viewportZoom, setFlatTree]);
+  }, [id, editMode, viewportZoom, flatTree, setFlatTree]);
 
   // menu event
   useEffect(() => {

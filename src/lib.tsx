@@ -28,6 +28,35 @@ export const flattenTree = (node: NodeData, result: NodeData[] = []) => {
   return result;
 };
 
+export const findDescendentsById = (
+  node: NodeData,
+  id: number,
+  result: NodeData[] = [],
+) => {
+  if (node.id === id) {
+    node.children?.forEach((item) => {
+      // collect all node's kids
+      result.push(item);
+      // collect kids' kids
+      findDescendentsById(item, item.id, result);
+    });
+
+    return result;
+  } else {
+    if (node.children) {
+      for (const item of node.children) {
+        if (item.id === id) {
+          findDescendentsById(item, item.id, result);
+          return result;
+        }
+      }
+      return [];
+    } else {
+      return [];
+    }
+  }
+};
+
 export const getDistanceBetweenTwoPoints = (p1: Point, p2: Point) => {
   return Math.sqrt(
     (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y),

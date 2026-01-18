@@ -1,6 +1,6 @@
 import { twMerge } from "tailwind-merge";
 
-type ButtonType = "primary";
+type ButtonType = "primary" | "secondary" | "danger";
 
 interface ButtonProps {
   children: React.ReactNode;
@@ -20,6 +20,16 @@ export default function Button({
   switch (type) {
     case "primary":
       cn = "bg-primary";
+
+      break;
+
+    case "secondary":
+      cn = "bg-secondary";
+
+      break;
+
+    case "danger":
+      cn = "bg-danger";
 
       break;
 

@@ -1,5 +1,6 @@
 import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 import PaperContext from "../context/paperContext";
+import { findDescendentsByIdInFlatTree } from "../lib";
 
 interface NoteNodeProps {
   id: number;
@@ -27,7 +28,9 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
     height: 0,
   });
 
+  // context
   const paperContext = use(PaperContext);
+  const flatTree = paperContext?.flatTree;
   const editMode = paperContext?.editMode;
   const viewportZoom = paperContext?.viewportZoom;
   const selectedNodeIdRef = paperContext?.selectedNodeIdRef;
@@ -51,6 +54,8 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
     startX: 0,
     startY: 0,
   });
+
+  const descendentIdsRef = useRef<number[]>([]);
 
   const showOpenMenu = (e: React.MouseEvent<SVGGElement, MouseEvent>) => {
     e.preventDefault();
@@ -140,6 +145,14 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
 
       // ⭐ after pointer down, "bind" the current pointer event to the g element.
       gElem?.setPointerCapture(e.pointerId);
+
+      // get descendent nodes
+      if (flatTree) {
+        descendentIdsRef.current = findDescendentsByIdInFlatTree(
+          flatTree,
+          id,
+        ).map((item) => item.id);
+      }
     };
 
     const onPointerMove = (e: PointerEvent) => {
@@ -152,7 +165,7 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
       // update state
       setFlatTree?.((prev) => {
         return prev.map((item) => {
-          if (item.id === id) {
+          if (item.id === id || descendentIdsRef.current.includes(item.id)) {
             return {
               ...item,
               x: item.x + deltaX * (viewportZoom ?? 1),

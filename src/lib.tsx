@@ -28,7 +28,7 @@ export const flattenTree = (node: NodeData, result: NodeData[] = []) => {
   return result;
 };
 
-export const findDescendentsById = (
+export const findDescendentsByIdInTree = (
   node: NodeData,
   id: number,
   result: NodeData[] = [],
@@ -38,7 +38,7 @@ export const findDescendentsById = (
       // collect all node's kids
       result.push(item);
       // collect kids' kids
-      findDescendentsById(item, item.id, result);
+      findDescendentsByIdInTree(item, item.id, result);
     });
 
     return result;
@@ -46,7 +46,7 @@ export const findDescendentsById = (
     if (node.children) {
       for (const item of node.children) {
         if (item.id === id) {
-          findDescendentsById(item, item.id, result);
+          findDescendentsByIdInTree(item, item.id, result);
           return result;
         }
       }
@@ -55,6 +55,20 @@ export const findDescendentsById = (
       return [];
     }
   }
+};
+
+export const findDescendentsByIdInFlatTree = (
+  flatTree: NodeData[],
+  id: number,
+  result: NodeData[] = [],
+) => {
+  for (const item of flatTree) {
+    if (item.pid === id) {
+      result.push(item);
+      findDescendentsByIdInFlatTree(flatTree, item.id, result);
+    }
+  }
+  return result;
 };
 
 export const getDistanceBetweenTwoPoints = (p1: Point, p2: Point) => {

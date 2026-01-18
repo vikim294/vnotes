@@ -11,6 +11,7 @@ import { tree } from "./mock/nodeData";
 import NoteTree from "./components/NoteTree";
 import PaperContext from "./context/paperContext";
 import useModal from "./components/useModal";
+import type { NodeData } from "./types";
 
 interface GestureInfo {
   type: "none" | "panning" | "pinchAndZoom";
@@ -154,11 +155,13 @@ function App() {
   const handleNodeAddConfirm = () => {
     if (!selectedNodeIdRef.current) return;
 
+    const pNode = flatTree.find(item => item.id ===selectedNodeIdRef.current ) as NodeData
+
     const newNode = {
       id: Date.now(),
       label: nodeEditContent,
-      x: viewportRef.current.x + viewportRef.current.width / 2,
-      y: viewportRef.current.y + viewportRef.current.height / 2,
+      x: pNode.x + 100,
+      y: pNode.y + 100,
       pid: selectedNodeIdRef.current,
     };
 

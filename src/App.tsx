@@ -27,7 +27,7 @@ interface GestureInfo {
 }
 
 function App() {
-  const [flatTree, setFlatTree] = useState(flattenTree(tree));
+  const [flatTree, setFlatTree] = useState(() => flattenTree(tree));
   const [paperSize, setPaperSize] = useState({ width: 0, height: 0 });
   const [viewport, setViewport] = useState({
     x: 0,
@@ -57,6 +57,16 @@ function App() {
   const [nodeMenuVisible, setNodeMenuVisible] = useState(false);
   const nodeMenuRef = useRef<NodeMenuExpose | null>(null);
   const selectedNodeIdRef = useRef<number | null>(null);
+
+  // edit node
+  const {
+    Modal: NodeEditModal,
+    openModal: openNodeEditModal,
+    closeModal: closeNodeEditModal,
+  } = useModal();
+  const [nodeEditContent, setNodeEditContent] = useState("");
+
+  // delete node
   const {
     Modal: NodeDeleteConfirmModal,
     openModal: openNodeDeleteConfirmModal,
@@ -91,24 +101,50 @@ function App() {
   };
 
   const handleNodeEdit = () => {
-    //
+    // show the current value
+    setNodeEditContent(
+      flatTree.find((node) => node.id === selectedNodeIdRef.current)?.label ??
+        "",
+    );
+    openNodeEditModal();
   };
   const handleNodeAddChild = () => {
     //
   };
   const handleNodeDelete = () => {
-    console.log("handleNodeDelete");
     openNodeDeleteConfirmModal();
   };
 
   const handleNodeMenuClose = () => {
-    selectedNodeIdRef.current = null;
+    // avoid selectedNodeIdRef.current inside setState being null too early
+    setTimeout(() => {
+      selectedNodeIdRef.current = null;
+    }, 0);
     setNodeMenuVisible(false);
+  };
+
+  const handleNodeEditConfirm = () => {
+    if (!selectedNodeIdRef.current) return;
+
+    setFlatTree((prev) => {
+      const res = prev.map((node) => {
+        if (node.id === selectedNodeIdRef.current) {
+          return {
+            ...node,
+            label: nodeEditContent,
+          };
+        } else return node;
+      });
+
+      return res;
+    });
+
+    closeNodeEditModal();
+    handleNodeMenuClose();
   };
 
   const handleNodeDeleteConfirm = () => {
     if (!selectedNodeIdRef.current) return;
-    // console.log("handleNodeDeleteConfirm", selectedNodeIdRef.current);
 
     const nodeIdsToBeDeleted = [
       selectedNodeIdRef.current,
@@ -117,12 +153,9 @@ function App() {
       ),
     ];
 
-    const newData = flatTree.filter(
-      (node) => !nodeIdsToBeDeleted.includes(node.id),
+    setFlatTree(
+      flatTree.filter((node) => !nodeIdsToBeDeleted.includes(node.id)),
     );
-
-    // console.log("newData", newData);
-    setFlatTree(newData);
 
     closeNodeDeleteConfirmModal();
     handleNodeMenuClose();
@@ -378,6 +411,25 @@ function App() {
           onDelete={handleNodeDelete}
           onClose={handleNodeMenuClose}
         />
+
+        <NodeEditModal
+          header="编辑结点"
+          footer={
+            <div>
+              <Button onClick={closeNodeEditModal}>取消</Button>
+              <Button type="primary" onClick={handleNodeEditConfirm}>
+                确认
+              </Button>
+            </div>
+          }
+        >
+          <input
+            type="text"
+            className="bg-textarea outline-none p-2"
+            value={nodeEditContent}
+            onChange={(e) => setNodeEditContent(e.target.value)}
+          />
+        </NodeEditModal>
 
         <NodeDeleteConfirmModal
           header="确认要删除该结点吗？"

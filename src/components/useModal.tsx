@@ -1,5 +1,4 @@
 import { createPortal } from "react-dom";
-import Button from "./Button";
 import { useCallback, useState } from "react";
 
 interface ModalProps {

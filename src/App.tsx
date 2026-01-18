@@ -1,6 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
-import { createCircle, flattenTree, getDistanceBetweenTwoPoints } from "./lib";
+import {
+  createCircle,
+  findDescendentsById,
+  flattenTree,
+  getDistanceBetweenTwoPoints,
+} from "./lib";
 import Button from "./components/Button";
 import NodeMenu, { type NodeMenuExpose } from "./components/NodeMenu";
 import { tree } from "./mock/nodeData";
@@ -102,13 +107,21 @@ function App() {
   };
 
   const handleNodeDeleteConfirm = () => {
-    console.log("handleNodeDeleteConfirm", selectedNodeIdRef.current);
+    if (!selectedNodeIdRef.current) return;
+    // console.log("handleNodeDeleteConfirm", selectedNodeIdRef.current);
 
-    // TODO: also need to delete its children nodes
+    const nodeIdsToBeDeleted = [
+      selectedNodeIdRef.current,
+      ...findDescendentsById(tree, selectedNodeIdRef.current).map(
+        (item) => item.id,
+      ),
+    ];
+
     const newData = flatTree.filter(
-      (node) => node.id !== selectedNodeIdRef.current,
+      (node) => !nodeIdsToBeDeleted.includes(node.id),
     );
-    console.log("newData", newData);
+
+    // console.log("newData", newData);
     setFlatTree(newData);
 
     closeNodeDeleteConfirmModal();

@@ -11,6 +11,20 @@ const tree: NodeData = {
       label: "study",
       x: 300,
       y: 40,
+      children: [
+        {
+          id: 5,
+          label: "js",
+          x: 500,
+          y: 40,
+        },
+        {
+          id: 6,
+          label: "project",
+          x: 500,
+          y: 100,
+        },
+      ],
     },
     {
       id: 3,
@@ -23,6 +37,14 @@ const tree: NodeData = {
       label: "code",
       x: 300,
       y: 200,
+      children: [
+        {
+          id: 7,
+          label: "work",
+          x: 500,
+          y: 200,
+        },
+      ],
     },
   ],
 };

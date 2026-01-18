@@ -66,6 +66,13 @@ function App() {
   } = useModal();
   const [nodeEditContent, setNodeEditContent] = useState("");
 
+  // add node
+  const {
+    Modal: NodeAddModal,
+    openModal: openNodeAddModal,
+    closeModal: closeNodeAddModal,
+  } = useModal();
+
   // delete node
   const {
     Modal: NodeDeleteConfirmModal,
@@ -109,7 +116,8 @@ function App() {
     openNodeEditModal();
   };
   const handleNodeAddChild = () => {
-    //
+    setNodeEditContent("");
+    openNodeAddModal();
   };
   const handleNodeDelete = () => {
     openNodeDeleteConfirmModal();
@@ -140,6 +148,23 @@ function App() {
     });
 
     closeNodeEditModal();
+    handleNodeMenuClose();
+  };
+
+  const handleNodeAddConfirm = () => {
+    if (!selectedNodeIdRef.current) return;
+
+    const newNode = {
+      id: Date.now(),
+      label: nodeEditContent,
+      x: viewportRef.current.x + viewportRef.current.width / 2,
+      y: viewportRef.current.y + viewportRef.current.height / 2,
+      pid: selectedNodeIdRef.current,
+    };
+
+    setFlatTree((prev) => [...prev, newNode]);
+
+    closeNodeAddModal();
     handleNodeMenuClose();
   };
 
@@ -425,11 +450,30 @@ function App() {
         >
           <input
             type="text"
-            className="bg-textarea outline-none p-2"
+            className="bg-textarea p-2 outline-none"
             value={nodeEditContent}
             onChange={(e) => setNodeEditContent(e.target.value)}
           />
         </NodeEditModal>
+
+        <NodeAddModal
+          header="添加子结点"
+          footer={
+            <div>
+              <Button onClick={closeNodeAddModal}>取消</Button>
+              <Button type="primary" onClick={handleNodeAddConfirm}>
+                确认
+              </Button>
+            </div>
+          }
+        >
+          <input
+            type="text"
+            className="bg-textarea p-2 outline-none"
+            value={nodeEditContent}
+            onChange={(e) => setNodeEditContent(e.target.value)}
+          />
+        </NodeAddModal>
 
         <NodeDeleteConfirmModal
           header="确认要删除该结点吗？"

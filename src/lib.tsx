@@ -28,6 +28,7 @@ export const flattenTree = (node: NodeData, result: NodeData[] = []) => {
   return result;
 };
 
+// TODO: use flat tree instead of root node，不然删除会有问题
 export const findDescendentsById = (
   node: NodeData,
   id: number,

@@ -126,6 +126,7 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
     }
   }, [label]);
 
+  // TODO: 拖动结点时，后代结点的位置也相对更新
   // drag node
   useEffect(() => {
     const gElem = gRef.current;

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import {
-  findDescendentsById,
+  findDescendentsByIdInFlatTree,
   flattenTree,
   getDistanceBetweenTwoPoints,
 } from "./lib";
@@ -173,7 +173,7 @@ function App() {
 
     const nodeIdsToBeDeleted = [
       selectedNodeIdRef.current,
-      ...findDescendentsById(tree, selectedNodeIdRef.current).map(
+      ...findDescendentsByIdInFlatTree(flatTree, selectedNodeIdRef.current).map(
         (item) => item.id,
       ),
     ];

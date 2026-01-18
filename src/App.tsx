@@ -84,6 +84,7 @@ function App() {
   // context
   const paperContext = useMemo(
     () => ({
+      flatTree,
       editMode,
       viewportZoom: viewport.zoom,
       selectedNodeIdRef,
@@ -91,7 +92,7 @@ function App() {
       setFlatTree,
       setNodeMenuVisible,
     }),
-    [editMode, viewport.zoom],
+    [flatTree, editMode, viewport.zoom],
   );
 
   const handleSaveEdit = () => {

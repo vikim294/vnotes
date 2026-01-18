@@ -3,6 +3,7 @@ import type { NodeMenuExpose } from "../components/NodeMenu";
 import type { NodeData } from "../types";
 
 const PaperContext = createContext<{
+  flatTree: NodeData[];
   editMode: boolean;
   viewportZoom: number;
   selectedNodeIdRef: React.RefObject<number | null>;

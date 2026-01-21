@@ -74,6 +74,10 @@ function App() {
     closeModal: closeNodeAddModal,
   } = useModal();
 
+  // set parent node
+  const [isChoosingParent, setIsChoosingParent] = useState(false)
+  const [chosenParentNodeId, setChosenParentNodeId] = useState<number | null>(null)
+
   // delete node
   const {
     Modal: NodeDeleteConfirmModal,
@@ -89,10 +93,12 @@ function App() {
       viewportZoom: viewport.zoom,
       selectedNodeIdRef,
       nodeMenuRef,
+      isChoosingParent,
       setFlatTree,
       setNodeMenuVisible,
+      setChosenParentNodeId,
     }),
-    [flatTree, editMode, viewport.zoom],
+    [flatTree, editMode, viewport.zoom, isChoosingParent],
   );
 
   const handleSaveEdit = () => {
@@ -113,14 +119,21 @@ function App() {
     // show the current value
     setNodeEditContent(
       flatTree.find((node) => node.id === selectedNodeIdRef.current)?.label ??
-        "",
+      "",
     );
     openNodeEditModal();
   };
+
   const handleNodeAddChild = () => {
     setNodeEditContent("");
     openNodeAddModal();
   };
+
+  const handleNodeSetParent = () => {
+    setNodeMenuVisible(false);
+    setIsChoosingParent(true);
+  }
+
   const handleNodeDelete = () => {
     openNodeDeleteConfirmModal();
   };
@@ -156,7 +169,7 @@ function App() {
   const handleNodeAddConfirm = () => {
     if (!selectedNodeIdRef.current) return;
 
-    const pNode = flatTree.find(item => item.id ===selectedNodeIdRef.current ) as NodeData
+    const pNode = flatTree.find(item => item.id === selectedNodeIdRef.current) as NodeData
 
     const newNode = {
       id: Date.now(),
@@ -437,10 +450,50 @@ function App() {
           visible={nodeMenuVisible}
           onEdit={handleNodeEdit}
           onAddChild={handleNodeAddChild}
+          onSetParent={handleNodeSetParent}
           onDelete={handleNodeDelete}
           onClose={handleNodeMenuClose}
         />
 
+        {/* choosing a parent node */}
+        {
+          isChoosingParent && chosenParentNodeId === null && (
+            <div className="fixed top-10 left-1/2 -translate-x-1/2 text-white">
+              please choose a parent node
+            </div>
+          )
+        }
+        {
+          chosenParentNodeId !== null && (
+            <div className="fixed top-10 left-1/2 -translate-x-1/2 flex gap-2">
+              <Button onClick={() => {
+                setIsChoosingParent(false);
+                setChosenParentNodeId(null);
+                setNodeMenuVisible(true);
+              }}>
+                cancel
+              </Button>
+              <Button onClick={() => {
+                setFlatTree(prev => prev.map(item => {
+                  if (item.id === selectedNodeIdRef.current) {
+                    return {
+                      ...item,
+                      pid: chosenParentNodeId,
+                    }
+                  }
+                  return item
+                }))
+                setIsChoosingParent(false);
+                setChosenParentNodeId(null);
+                handleNodeMenuClose();
+              }}>
+                confirm
+              </Button>
+            </div>
+          )
+        }
+
+        {/* modals */}
         <NodeEditModal
           header="编辑结点"
           footer={

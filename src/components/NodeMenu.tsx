@@ -16,6 +16,7 @@ interface NodeMenuProps {
   visible: boolean;
   onEdit: () => void;
   onAddChild: () => void;
+  onSetParent: () => void;
   onDelete: () => void;
   onClose: () => void;
 }
@@ -25,6 +26,7 @@ export default function NodeMenu({
   visible,
   onEdit,
   onAddChild,
+  onSetParent,
   onDelete,
   onClose,
 }: NodeMenuProps) {
@@ -50,25 +52,22 @@ export default function NodeMenu({
         style={{ top: position.y, left: position.x }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div>
-          <Button className="block w-full" onClick={onEdit}>
-            edit content
-          </Button>
-        </div>
-        <div>
-          <Button
-            type="secondary"
-            className="block w-full"
-            onClick={onAddChild}
-          >
-            add child node
-          </Button>
-        </div>
-        <div>
-          <Button type="danger" className="block w-full" onClick={onDelete}>
-            delete
-          </Button>
-        </div>
+        <Button className="block w-full" onClick={onEdit}>
+          edit content
+        </Button>
+        <Button
+          type="secondary"
+          className="block w-full"
+          onClick={onAddChild}
+        >
+          add child node
+        </Button>
+        <Button className="block w-full" onClick={onSetParent}>
+          set parent node
+        </Button>
+        <Button type="danger" className="block w-full" onClick={onDelete}>
+          delete
+        </Button>
       </div>
     </div>,
     document.body,

@@ -35,8 +35,10 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
   const viewportZoom = paperContext?.viewportZoom;
   const selectedNodeIdRef = paperContext?.selectedNodeIdRef;
   const nodeMenuRef = paperContext?.nodeMenuRef;
+  const isChoosingParent = paperContext?.isChoosingParent;
   const setFlatTree = paperContext?.setFlatTree;
   const setNodeMenuVisible = paperContext?.setNodeMenuVisible;
+  const setChosenParentNodeId = paperContext?.setChosenParentNodeId;
 
   const gRef = useRef<SVGGElement | null>(null);
   const positionRef = useRef({
@@ -117,6 +119,12 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
     if (tapInfoRef.current.timer) {
       clearTimeout(tapInfoRef.current.timer);
       tapInfoRef.current.timer = null;
+    }
+  };
+
+  const handleClick = () => {
+    if (isChoosingParent) {
+      setChosenParentNodeId?.(id);
     }
   };
 
@@ -248,6 +256,7 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
+      onClick={handleClick}
     >
       <rect
         x={rectSize.width / -2}

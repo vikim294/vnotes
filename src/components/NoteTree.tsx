@@ -13,7 +13,7 @@ const NoteTree = ({ flatTree }: NoteTreeProps) => {
   });
 
   const edges = flatTree.map((node) => {
-    if (node.pid) {
+    if (node.pid && node.visible !== false) {
       const parent = nodesMap.get(node.pid);
       if (parent) {
         return createLine(
@@ -34,13 +34,14 @@ const NoteTree = ({ flatTree }: NoteTreeProps) => {
       {edges}
 
       {/* nodes */}
-      {flatTree.map((node) => (
+      {flatTree.filter(node => node.visible !== false || !node.pid).map((node) => (
         <NoteNode
           key={node.id}
           id={node.id}
           x={node.x}
           y={node.y}
           label={node.label}
+          expanded={node.expanded}
         />
       ))}
     </g>

@@ -28,7 +28,7 @@ export const flattenTree = (node: NodeData, result: NodeData[] = []) => {
   return result;
 };
 
-export const findDescendentsByIdInTree = (
+export const findDescendantsByIdInTree = (
   node: NodeData,
   id: number,
   result: NodeData[] = [],
@@ -38,7 +38,7 @@ export const findDescendentsByIdInTree = (
       // collect all node's kids
       result.push(item);
       // collect kids' kids
-      findDescendentsByIdInTree(item, item.id, result);
+      findDescendantsByIdInTree(item, item.id, result);
     });
 
     return result;
@@ -46,7 +46,7 @@ export const findDescendentsByIdInTree = (
     if (node.children) {
       for (const item of node.children) {
         if (item.id === id) {
-          findDescendentsByIdInTree(item, item.id, result);
+          findDescendantsByIdInTree(item, item.id, result);
           return result;
         }
       }
@@ -57,7 +57,7 @@ export const findDescendentsByIdInTree = (
   }
 };
 
-export const findDescendentsByIdInFlatTree = (
+export const findDescendantsByIdInFlatTree = (
   flatTree: NodeData[],
   id: number,
   result: NodeData[] = [],
@@ -65,7 +65,7 @@ export const findDescendentsByIdInFlatTree = (
   for (const item of flatTree) {
     if (item.pid === id) {
       result.push(item);
-      findDescendentsByIdInFlatTree(flatTree, item.id, result);
+      findDescendantsByIdInFlatTree(flatTree, item.id, result);
     }
   }
   return result;

@@ -237,8 +237,8 @@ function App() {
     const gestureData = gestureInfo.current;
 
     const onPointerDown = (e: PointerEvent) => {
-      // return if it's not paper in edit mode
-      if (editMode && e.target !== paperEl) return;
+      // return if it's not paper
+      if (e.target !== paperEl) return;
       // return if it's not left click when clicking
       if (e.pointerType === "mouse" && e.button !== 0) return;
 

@@ -1,4 +1,11 @@
-import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  use,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import PaperContext from "../context/paperContext";
 import { findDescendantsByIdInFlatTree } from "../lib";
 
@@ -59,6 +66,9 @@ export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
   });
 
   const descendantIdsRef = useRef<number[]>([]);
+  const hasChildren = useMemo(() => {
+    return flatTree?.some((item) => item.pid === id);
+  }, [flatTree, id]);
 
   const showOpenMenu = (e: React.MouseEvent<SVGGElement, MouseEvent>) => {
     e.preventDefault();
@@ -129,11 +139,13 @@ export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
     }
   };
 
-  const handleDoubleClick = (e: React.MouseEvent<SVGGElement, MouseEvent>) => {
-    if (!editMode) return;
+  const handleDoubleClick = () => {
+    if (!hasChildren) return;
     const newExpanded = expanded === false ? true : false;
 
-    const descendantIds = findDescendantsByIdInFlatTree(flatTree ?? [], id).map(item => item.id);
+    const descendantIds = findDescendantsByIdInFlatTree(flatTree ?? [], id).map(
+      (item) => item.id,
+    );
 
     setFlatTree?.((prev) => {
       return prev.map((item) => {
@@ -143,12 +155,15 @@ export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
         }
         // self
         if (item.id === id) {
-          return { ...item, expanded: newExpanded || newExpanded === undefined };
+          return {
+            ...item,
+            expanded: newExpanded || newExpanded === undefined,
+          };
         }
         return item;
       });
     });
-  }
+  };
 
   useLayoutEffect(() => {
     if (textRef.current) {
@@ -268,8 +283,8 @@ export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
 
   return (
     <g
+      className={"cursor-pointer"}
       key={id}
-      className={paperContext?.editMode ? "cursor-pointer" : ""}
       transform={`translate(${x}, ${y})`}
       ref={gRef}
       onContextMenu={showOpenMenu}
@@ -301,16 +316,19 @@ export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
         {label}
       </text>
 
-      <text
-        x={0}
-        y={-24}
-        fill="white"
-        textAnchor="middle"
-        dominantBaseline="middle"
-        className="select-none"
-      >
-        {expanded === false ? "+" : "-"}
-      </text>
+      {hasChildren && (
+        <text
+          className="select-none"
+          x={0}
+          y={-24}
+          fill="white"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {expanded === false ? "+" : "-"}
+        </text>
+      )}
     </g>
   );
 }

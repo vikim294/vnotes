@@ -71,6 +71,22 @@ export const findDescendantsByIdInFlatTree = (
   return result;
 };
 
+export const findAncestorsByIdInFlatTreeMap = (
+  flatTreeMap: Map<number, NodeData>,
+  id: number,
+  result: NodeData[] = [],
+) => {
+  const currentNode = flatTreeMap.get(id);
+  if (currentNode?.pid) {
+    const parentNode = flatTreeMap.get(currentNode?.pid);
+    if (parentNode) {
+      result.push(parentNode);
+      findAncestorsByIdInFlatTreeMap(flatTreeMap, parentNode.id, result);
+    }
+  }
+  return result;
+};
+
 export const getDistanceBetweenTwoPoints = (p1: Point, p2: Point) => {
   return Math.sqrt(
     (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y),

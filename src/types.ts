@@ -6,7 +6,6 @@ export interface NodeData {
   y: number;
   children?: NodeData[];
   expanded?: boolean;
-  visible?: boolean;
 }
 
 export interface Point {

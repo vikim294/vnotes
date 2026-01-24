@@ -181,17 +181,8 @@ export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
     if (!hasChildren) return;
     const newExpanded = expanded === false ? true : false;
 
-    const descendantIds = findDescendantsByIdInFlatTree(flatTree ?? [], id).map(
-      (item) => item.id,
-    );
-
     setFlatTree?.((prev) => {
       return prev.map((item) => {
-        // descendants
-        if (descendantIds.includes(item.id)) {
-          return { ...item, visible: newExpanded || newExpanded === undefined };
-        }
-        // self
         if (item.id === id) {
           return {
             ...item,

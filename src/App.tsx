@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import {
-  findDescendentsByIdInFlatTree,
+  findDescendantsByIdInFlatTree,
   flattenTree,
   getDistanceBetweenTwoPoints,
 } from "./lib";
@@ -52,6 +52,8 @@ function App() {
     viewportStartY: 0,
     viewportStartZoom: 1,
   });
+
+  const [expandState, setExpandState] = useState<'expandAll' | 'collapseAll'>('collapseAll')
 
   // edit mode
   const [editMode, setEditMode] = useState(false);
@@ -190,7 +192,7 @@ function App() {
 
     const nodeIdsToBeDeleted = [
       selectedNodeIdRef.current,
-      ...findDescendentsByIdInFlatTree(flatTree, selectedNodeIdRef.current).map(
+      ...findDescendantsByIdInFlatTree(flatTree, selectedNodeIdRef.current).map(
         (item) => item.id,
       ),
     ];
@@ -235,8 +237,8 @@ function App() {
     const gestureData = gestureInfo.current;
 
     const onPointerDown = (e: PointerEvent) => {
-      // return if it's not paper in edit mode
-      if (editMode && e.target !== paperEl) return;
+      // return if it's not paper
+      if (e.target !== paperEl) return;
       // return if it's not left click when clicking
       if (e.pointerType === "mouse" && e.button !== 0) return;
 
@@ -425,6 +427,22 @@ function App() {
         </div>
 
         <div className="fixed top-25 right-0">
+          {/* expand/collapse all button */}
+          <div>
+            <Button onClick={() => {
+              setFlatTree(prev => prev.map(item => ({
+                ...item,
+                expanded: expandState === 'collapseAll' ? true : false,
+                visible: expandState === 'collapseAll' ? true : false,
+              })))
+
+              setExpandState(prev => prev === 'collapseAll' ? 'expandAll' : 'collapseAll')
+            }}>
+              {expandState === 'collapseAll' ? 'expandAll' : 'collapseAll'}
+            </Button>
+          </div>
+
+          {/* edit mode */}
           {!editMode && (
             <Button type="primary" onClick={() => setEditMode(true)}>
               edit mode

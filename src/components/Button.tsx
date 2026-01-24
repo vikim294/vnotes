@@ -42,7 +42,7 @@ export default function Button({
     <button
       className={twMerge(
         cn,
-        "inline-block cursor-pointer p-2 text-white",
+        "inline-block cursor-pointer p-2 text-white select-none",
         className,
       )}
       onClick={onClick}

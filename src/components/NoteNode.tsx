@@ -1,12 +1,20 @@
-import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  use,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import PaperContext from "../context/paperContext";
-import { findDescendentsByIdInFlatTree } from "../lib";
+import { findDescendantsByIdInFlatTree } from "../lib";
 
 interface NoteNodeProps {
   id: number;
   x: number;
   y: number;
   label: string;
+  expanded?: boolean;
 }
 
 const createNodeMenuEvent = (detail: {
@@ -20,7 +28,7 @@ const createNodeMenuEvent = (detail: {
   });
 };
 
-export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
+export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
   const padding = 8;
   const textRef = useRef<SVGTextElement>(null);
   const [rectSize, setRectSize] = useState<{ width: number; height: number }>({
@@ -57,7 +65,13 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
     startY: 0,
   });
 
-  const descendentIdsRef = useRef<number[]>([]);
+  const descendantIdsRef = useRef<number[]>([]);
+  const hasChildren = useMemo(() => {
+    return flatTree?.some((item) => item.pid === id);
+  }, [flatTree, id]);
+
+  // used for double tap
+  const firstTapRef = useRef(false);
 
   const showOpenMenu = (e: React.MouseEvent<SVGGElement, MouseEvent>) => {
     e.preventDefault();
@@ -72,19 +86,33 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
   };
 
   const handlePointerDown = (e: React.PointerEvent<SVGGElement>) => {
-    if (!editMode) return;
     if (e.pointerType === "mouse") return;
     if (!e.isPrimary) return;
+
+    if (firstTapRef.current === false) {
+      firstTapRef.current = true;
+    } else {
+      // handle double tap
+      handleDoubleClick();
+      firstTapRef.current = false;
+      return;
+    }
 
     // tap 后开启定时器
     if (tapInfoRef.current.timer) {
       clearTimeout(tapInfoRef.current.timer);
     }
 
+    // triggerlong tap after 500ms
     tapInfoRef.current.startX = e.clientX;
     tapInfoRef.current.startY = e.clientY;
     tapInfoRef.current.timer = setTimeout(() => {
       tapInfoRef.current.timer = null;
+
+      // reset double tap
+      if (firstTapRef.current) {
+        firstTapRef.current = false;
+      }
 
       gRef.current?.dispatchEvent(
         createNodeMenuEvent({
@@ -96,6 +124,14 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
   };
 
   const handlePointerMove = (e: React.PointerEvent<SVGGElement>) => {
+    // allow drag only in edit mode
+    if (!editMode) return;
+
+    // reset double tap if moved
+    if (firstTapRef.current) {
+      firstTapRef.current = false;
+    }
+
     // TODO: 验证交互
     // tap 后移动超过10px，则认为是拖拽，而不是 menu
     if (tapInfoRef.current.timer) {
@@ -128,6 +164,32 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
     }
   };
 
+  const handleDoubleClick = () => {
+    if (!hasChildren) return;
+    const newExpanded = expanded === false ? true : false;
+
+    const descendantIds = findDescendantsByIdInFlatTree(flatTree ?? [], id).map(
+      (item) => item.id,
+    );
+
+    setFlatTree?.((prev) => {
+      return prev.map((item) => {
+        // descendants
+        if (descendantIds.includes(item.id)) {
+          return { ...item, visible: newExpanded || newExpanded === undefined };
+        }
+        // self
+        if (item.id === id) {
+          return {
+            ...item,
+            expanded: newExpanded || newExpanded === undefined,
+          };
+        }
+        return item;
+      });
+    });
+  };
+
   useLayoutEffect(() => {
     if (textRef.current) {
       const bbox = textRef.current.getBBox();
@@ -146,7 +208,6 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
 
     const onPointerDown = (e: PointerEvent) => {
       if (!editMode) return;
-      // console.log("pd");
       positionData.isDragging = true;
       positionData.startX = e.clientX;
       positionData.startY = e.clientY;
@@ -154,9 +215,9 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
       // ⭐ after pointer down, "bind" the current pointer event to the g element.
       gElem?.setPointerCapture(e.pointerId);
 
-      // get descendent nodes
+      // get descendant nodes
       if (flatTree) {
-        descendentIdsRef.current = findDescendentsByIdInFlatTree(
+        descendantIdsRef.current = findDescendantsByIdInFlatTree(
           flatTree,
           id,
         ).map((item) => item.id);
@@ -173,7 +234,7 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
       // update state
       setFlatTree?.((prev) => {
         return prev.map((item) => {
-          if (item.id === id || descendentIdsRef.current.includes(item.id)) {
+          if (item.id === id || descendantIdsRef.current.includes(item.id)) {
             return {
               ...item,
               x: item.x + deltaX * (viewportZoom ?? 1),
@@ -246,9 +307,12 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
   }, []);
 
   return (
+    // double tap(double click) -> expand/collapse
+    // drag -> move node
+    // long tap(right click) -> open menu
     <g
+      className={"cursor-pointer"}
       key={id}
-      className={paperContext?.editMode ? "cursor-pointer" : ""}
       transform={`translate(${x}, ${y})`}
       ref={gRef}
       onContextMenu={showOpenMenu}
@@ -257,6 +321,7 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
       onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
     >
       <rect
         x={rectSize.width / -2}
@@ -266,6 +331,7 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
         fill="black"
         stroke="white"
       />
+
       <text
         ref={textRef}
         x={0}
@@ -273,10 +339,24 @@ export default function NoteNode({ id, x, y, label }: NoteNodeProps) {
         fill="white"
         textAnchor="middle"
         dominantBaseline="middle"
-        style={{ userSelect: "none" }}
+        className="select-none"
       >
         {label}
       </text>
+
+      {hasChildren && (
+        <text
+          className="select-none"
+          x={0}
+          y={-24}
+          fill="white"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {expanded === false ? "+" : "-"}
+        </text>
+      )}
     </g>
   );
 }

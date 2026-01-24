@@ -53,7 +53,7 @@ function App() {
     viewportStartZoom: 1,
   });
 
-  const [expandState, setExpandState] = useState<'expandAll' | 'collapseAll'>('collapseAll')
+  const [isAllExpanded, setIsAllExpand] = useState(true)
 
   // edit mode
   const [editMode, setEditMode] = useState(false);
@@ -430,15 +430,16 @@ function App() {
           {/* expand/collapse all button */}
           <div>
             <Button onClick={() => {
+              const newValue = !isAllExpanded
+
               setFlatTree(prev => prev.map(item => ({
                 ...item,
-                expanded: expandState === 'collapseAll' ? true : false,
-                visible: expandState === 'collapseAll' ? true : false,
+                expanded: newValue ? true : false,
               })))
 
-              setExpandState(prev => prev === 'collapseAll' ? 'expandAll' : 'collapseAll')
+              setIsAllExpand(newValue)
             }}>
-              {expandState === 'collapseAll' ? 'expandAll' : 'collapseAll'}
+              {isAllExpanded ? 'collapseAll' : 'expandAll'}
             </Button>
           </div>
 
@@ -523,9 +524,8 @@ function App() {
             </div>
           }
         >
-          <input
-            type="text"
-            className="bg-textarea p-2 outline-none"
+          <textarea
+            className="bg-textarea w-full p-2 outline-none resize-none"
             value={nodeEditContent}
             onChange={(e) => setNodeEditContent(e.target.value)}
           />
@@ -542,9 +542,8 @@ function App() {
             </div>
           }
         >
-          <input
-            type="text"
-            className="bg-textarea p-2 outline-none"
+          <textarea
+            className="bg-textarea w-full p-2 outline-none resize-none"
             value={nodeEditContent}
             onChange={(e) => setNodeEditContent(e.target.value)}
           />

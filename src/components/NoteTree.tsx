@@ -1,4 +1,4 @@
-import { createLine } from "../lib";
+import { createLine, findAncestorsByIdInFlatTreeMap } from "../lib";
 import type { NodeData } from "../types";
 import NoteNode from "./NoteNode";
 
@@ -12,29 +12,35 @@ const NoteTree = ({ flatTree }: NoteTreeProps) => {
     nodesMap.set(node.id, node);
   });
 
-  const edges = flatTree.map((node) => {
-    if (node.pid && node.visible !== false) {
-      const parent = nodesMap.get(node.pid);
+  const edges = [];
+  const nodes = [];
+
+  for (const node of flatTree) {
+    const ancestorNodes = findAncestorsByIdInFlatTreeMap(nodesMap, node.id);
+    const areAllAncestorsExpanded = ancestorNodes.every(
+      (item) => item.expanded !== false,
+    );
+
+    const edgeVisible = node.pid && areAllAncestorsExpanded;
+    const nodeVisible = !node.pid || areAllAncestorsExpanded;
+
+    if (edgeVisible) {
+      const parent = ancestorNodes[0];
       if (parent) {
-        return createLine(
+        const e = createLine(
           `line-${parent.id}-${node.id}`,
           parent.x,
           parent.y,
           node.x,
           node.y,
         );
+
+        edges.push(e);
       }
     }
-    return null;
-  });
 
-  return (
-    <g>
-      {/* edges */}
-      {edges}
-
-      {/* nodes */}
-      {flatTree.filter(node => node.visible !== false || !node.pid).map((node) => (
+    if (nodeVisible) {
+      const n = (
         <NoteNode
           key={node.id}
           id={node.id}
@@ -43,7 +49,15 @@ const NoteTree = ({ flatTree }: NoteTreeProps) => {
           label={node.label}
           expanded={node.expanded}
         />
-      ))}
+      );
+      nodes.push(n);
+    }
+  }
+
+  return (
+    <g>
+      {edges}
+      {nodes}
     </g>
   );
 };

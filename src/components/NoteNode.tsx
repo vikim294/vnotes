@@ -70,6 +70,9 @@ export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
     return flatTree?.some((item) => item.pid === id);
   }, [flatTree, id]);
 
+  // used for double tap
+  const firstTapRef = useRef(false);
+
   const showOpenMenu = (e: React.MouseEvent<SVGGElement, MouseEvent>) => {
     e.preventDefault();
     if (!editMode) return;
@@ -83,19 +86,33 @@ export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
   };
 
   const handlePointerDown = (e: React.PointerEvent<SVGGElement>) => {
-    if (!editMode) return;
     if (e.pointerType === "mouse") return;
     if (!e.isPrimary) return;
+
+    if (firstTapRef.current === false) {
+      firstTapRef.current = true;
+    } else {
+      // handle double tap
+      handleDoubleClick();
+      firstTapRef.current = false;
+      return;
+    }
 
     // tap 后开启定时器
     if (tapInfoRef.current.timer) {
       clearTimeout(tapInfoRef.current.timer);
     }
 
+    // triggerlong tap after 500ms
     tapInfoRef.current.startX = e.clientX;
     tapInfoRef.current.startY = e.clientY;
     tapInfoRef.current.timer = setTimeout(() => {
       tapInfoRef.current.timer = null;
+
+      // reset double tap
+      if (firstTapRef.current) {
+        firstTapRef.current = false;
+      }
 
       gRef.current?.dispatchEvent(
         createNodeMenuEvent({
@@ -107,6 +124,14 @@ export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
   };
 
   const handlePointerMove = (e: React.PointerEvent<SVGGElement>) => {
+    // allow drag only in edit mode
+    if (!editMode) return;
+
+    // reset double tap if moved
+    if (firstTapRef.current) {
+      firstTapRef.current = false;
+    }
+
     // TODO: 验证交互
     // tap 后移动超过10px，则认为是拖拽，而不是 menu
     if (tapInfoRef.current.timer) {
@@ -282,6 +307,9 @@ export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
   }, []);
 
   return (
+    // double tap(double click) -> expand/collapse
+    // drag -> move node
+    // long tap(right click) -> open menu
     <g
       className={"cursor-pointer"}
       key={id}

@@ -427,6 +427,7 @@ function App() {
         </div>
 
         <div className="fixed top-25 right-0">
+          {/* expand/collapse all button */}
           <div>
             <Button onClick={() => {
               setFlatTree(prev => prev.map(item => ({

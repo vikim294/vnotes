@@ -56,11 +56,13 @@ export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
   });
 
   const tapInfoRef = useRef<{
-    timer: number | null;
+    timerForLongTap: number | null;
+    timerForDoubleTap: number | null;
     startX: number;
     startY: number;
   }>({
-    timer: null,
+    timerForLongTap: null,
+    timerForDoubleTap: null,
     startX: 0,
     startY: 0,
   });
@@ -87,10 +89,22 @@ export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
 
   const handlePointerDown = (e: React.PointerEvent<SVGGElement>) => {
     if (e.pointerType === "mouse") return;
-    if (!e.isPrimary) return;
 
     if (firstTapRef.current === false) {
       firstTapRef.current = true;
+
+      // reset double tap after 200ms
+      if (tapInfoRef.current.timerForDoubleTap) {
+        clearTimeout(tapInfoRef.current.timerForDoubleTap);
+      }
+
+      tapInfoRef.current.timerForDoubleTap = setTimeout(() => {
+        tapInfoRef.current.timerForDoubleTap = null;
+
+        if (firstTapRef.current) {
+          firstTapRef.current = false;
+        }
+      }, 200);
     } else {
       // handle double tap
       handleDoubleClick();
@@ -98,21 +112,20 @@ export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
       return;
     }
 
+    // allow long tap only in edit mode
+    if (!editMode) return;
+    if (!e.isPrimary) return;
+
     // tap 后开启定时器
-    if (tapInfoRef.current.timer) {
-      clearTimeout(tapInfoRef.current.timer);
+    if (tapInfoRef.current.timerForLongTap) {
+      clearTimeout(tapInfoRef.current.timerForLongTap);
     }
 
     // triggerlong tap after 500ms
     tapInfoRef.current.startX = e.clientX;
     tapInfoRef.current.startY = e.clientY;
-    tapInfoRef.current.timer = setTimeout(() => {
-      tapInfoRef.current.timer = null;
-
-      // reset double tap
-      if (firstTapRef.current) {
-        firstTapRef.current = false;
-      }
+    tapInfoRef.current.timerForLongTap = setTimeout(() => {
+      tapInfoRef.current.timerForLongTap = null;
 
       gRef.current?.dispatchEvent(
         createNodeMenuEvent({
@@ -134,27 +147,27 @@ export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
 
     // TODO: 验证交互
     // tap 后移动超过10px，则认为是拖拽，而不是 menu
-    if (tapInfoRef.current.timer) {
+    if (tapInfoRef.current.timerForLongTap) {
       const deltaX = e.clientX - tapInfoRef.current.startX;
       const deltaY = e.clientY - tapInfoRef.current.startY;
       if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
-        clearTimeout(tapInfoRef.current.timer);
-        tapInfoRef.current.timer = null;
+        clearTimeout(tapInfoRef.current.timerForLongTap);
+        tapInfoRef.current.timerForLongTap = null;
       }
     }
   };
 
   const handlePointerUp = () => {
-    if (tapInfoRef.current.timer) {
-      clearTimeout(tapInfoRef.current.timer);
-      tapInfoRef.current.timer = null;
+    if (tapInfoRef.current.timerForLongTap) {
+      clearTimeout(tapInfoRef.current.timerForLongTap);
+      tapInfoRef.current.timerForLongTap = null;
     }
   };
 
   const handlePointerCancel = () => {
-    if (tapInfoRef.current.timer) {
-      clearTimeout(tapInfoRef.current.timer);
-      tapInfoRef.current.timer = null;
+    if (tapInfoRef.current.timerForLongTap) {
+      clearTimeout(tapInfoRef.current.timerForLongTap);
+      tapInfoRef.current.timerForLongTap = null;
     }
   };
 
@@ -299,9 +312,14 @@ export default function NoteNode({ id, x, y, label, expanded }: NoteNodeProps) {
 
   useEffect(() => {
     return () => {
-      if (tapInfoRef.current.timer) {
-        clearTimeout(tapInfoRef.current.timer);
-        tapInfoRef.current.timer = null;
+      if (tapInfoRef.current.timerForLongTap) {
+        clearTimeout(tapInfoRef.current.timerForLongTap);
+        tapInfoRef.current.timerForLongTap = null;
+      }
+
+      if (tapInfoRef.current.timerForDoubleTap) {
+        clearTimeout(tapInfoRef.current.timerForDoubleTap);
+        tapInfoRef.current.timerForDoubleTap = null;
       }
     };
   }, []);

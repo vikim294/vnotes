@@ -1,17 +1,16 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import "./App.css";
 import {
   findDescendantsByIdInFlatTree,
   flattenTree,
   getDistanceBetweenTwoPoints,
-} from "./lib";
-import Button from "./components/Button";
-import NodeMenu, { type NodeMenuExpose } from "./components/NodeMenu";
-import { tree } from "./mock/nodeData";
-import NoteTree from "./components/NoteTree";
-import PaperContext from "./context/paperContext";
-import useModal from "./components/useModal";
-import type { NodeData } from "./types";
+} from "../../lib";
+import Button from "../../components/Button";
+import NodeMenu, { type NodeMenuExpose } from "../../components/NodeMenu";
+import { tree } from "../../mock/nodeData";
+import NoteTree from "../../components/NoteTree";
+import PaperContext from "../../context/paperContext";
+import useModal from "../../components/useModal";
+import type { NodeData } from "../../types";
 
 interface GestureInfo {
   type: "none" | "panning" | "pinchAndZoom";
@@ -27,7 +26,7 @@ interface GestureInfo {
   viewportStartZoom: number;
 }
 
-function App() {
+function NoteDetail() {
   const [flatTree, setFlatTree] = useState(() => flattenTree(tree));
   const [paperSize, setPaperSize] = useState({ width: 0, height: 0 });
   const [viewport, setViewport] = useState({
@@ -565,4 +564,4 @@ function App() {
   );
 }
 
-export default App;
+export default NoteDetail;
